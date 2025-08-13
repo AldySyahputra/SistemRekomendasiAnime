@@ -1,0 +1,374 @@
+<!-- Anime Card Template -->
+{% macro anime_card(anime) %}
+<div class="anime-card" onclick="showAnimeDetails({{ anime|tojson|safe }})">
+  <div class="anime-card-image">
+    <img src="{{ anime.image_url }}" alt="{{ anime.name }}" loading="lazy" />
+    <div class="anime-card-rating">
+      <i class="fas fa-star"></i>
+      <span>{{ "%.2f"|format(anime.rating) }}</span>
+    </div>
+  </div>
+  <div class="anime-card-content">
+    <h3>{{ anime.name }}</h3>
+    <div class="anime-info">
+      <p><i class="fas fa-tv"></i> {{ anime.type }}</p>
+      <p><i class="fas fa-film"></i> {{ anime.episodes }} ep</p>
+    </div>
+    <div class="genre-tags">
+      {% for genre in anime.genres[:3] %}
+      <span class="genre-tag">{{ genre }}</span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistem Rekomendasi Anime</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+      body {
+        font-family: 'Poppins', sans-serif;
+        background-color: #f8f9fa;
+      }
+      .navbar {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .navbar-brand {
+        font-weight: 600;
+      }
+      .card {
+        border: none;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+      .card-img-top {
+        height: 300px;
+        object-fit: cover;
+      }
+      .btn-update {
+        background-color: #6c5ce7;
+        border-color: #6c5ce7;
+        font-weight: 500;
+      }
+      .btn-update:hover {
+        background-color: #5b4cdb;
+        border-color: #5b4cdb;
+      }
+      .section-title {
+        position: relative;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+      }
+      .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 50px;
+        height: 3px;
+        background-color: #6c5ce7;
+      }
+      .nav-link {
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        margin: 0 0.2rem;
+      }
+      .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      .nav-link.active {
+        background-color: #6c5ce7;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container">
+        <a class="navbar-brand" href="/"><i class="fas fa-tv me-2"></i>Sistem Rekomendasi Anime</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link active" href="/"><i class="fas fa-home me-1"></i>Beranda</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/recommend"><i class="fas fa-star me-1"></i>Rekomendasi</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container mt-4">
+      <div class="d-flex justify-content-between align-items-center">
+        <h2 class="section-title">Anime Terpopuler</h2>
+        <button onclick="updateAnimeData()" class="btn btn-primary btn-update"><i class="fas fa-sync-alt me-1"></i> Perbarui Data</button>
+      </div>
+
+      <div class="row g-4">
+        {% for anime in top_anime %}
+        <div class="col-md-4">
+          <div class="card h-100 shadow-sm">
+            <img src="{{ anime.image_url }}" class="card-img-top" alt="{{ anime.name }}" />
+            <div class="card-body">
+              <h5 class="card-title">{{ anime.name }}</h5>
+              <div class="mb-3">
+                <span class="badge bg-primary me-1">Rating: {{ anime.rating }}</span>
+                <span class="badge bg-secondary me-1">{{ anime.type }}</span>
+                <span class="badge bg-info">Episode: {{ anime.episodes }}</span>
+              </div>
+              <p class="card-text">
+                <small class="text-muted"><strong>Genre:</strong> {{ anime.genre }}</small>
+              </p>
+              <p class="card-text">{{ anime.synopsis[:200] + '...' if anime.synopsis else '' }}</p>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+              <a href="/recommend?anime={{ anime.name|urlencode }}" class="btn btn-outline-primary w-100"> <i class="fas fa-search me-1"></i> Cari Rekomendasi Serupa </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+      <p class="mb-0">Dibuat dengan <i class="fas fa-heart text-danger"></i> untuk pecinta anime</p>
+    </footer>
+
+    <!-- Modal Detail Anime -->
+    <div id="animeModal" class="modal">
+      <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <div class="anime-detail" id="modalContent"></div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      const searchInput = document.getElementById('searchInput');
+      const searchResults = document.getElementById('searchResults');
+      const recommendationSection = document.getElementById('recommendationSection');
+      const selectedAnimeDetails = document.getElementById('selectedAnimeDetails');
+      const recommendationsContainer = document.getElementById('recommendationsContainer');
+      const modal = document.getElementById('animeModal');
+
+      let debounceTimer;
+
+      function showAnimeDetails(anime) {
+        const modalContent = document.getElementById('modalContent');
+        modalContent.innerHTML = `
+          <div class="anime-detail-image">
+            <img src="${anime.image_url}" alt="${anime.name}">
+          </div>
+          <div class="anime-detail-info">
+            <h2>${anime.name}</h2>
+            <div class="anime-meta-info">
+              <div class="meta-item">
+                <i class="fas fa-star"></i>
+                <p>Nilai</p>
+                <h4>${anime.rating.toFixed(2)}</h4>
+              </div>
+              <div class="meta-item">
+                <i class="fas fa-tv"></i>
+                <p>Tipe</p>
+                <h4>${anime.type}</h4>
+              </div>
+              <div class="meta-item">
+                <i class="fas fa-film"></i>
+                <p>Episode</p>
+                <h4>${anime.episodes}</h4>
+              </div>
+            </div>
+            <div class="anime-synopsis">
+              <h3>Sinopsis</h3>
+              <p>${anime.synopsis || 'Tidak ada sinopsis tersedia.'}</p>
+            </div>
+            <div class="genre-tags">
+              ${anime.genres.map((genre) => `<span class="genre-tag">${genre}</span>`).join('')}
+            </div>
+          </div>
+        `;
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeModal() {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+      }
+
+      window.onclick = function (event) {
+        if (event.target == modal) {
+          closeModal();
+        }
+      };
+
+      searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          const query = searchInput.value.trim();
+          if (query.length > 2) {
+            fetch(`/search?q=${encodeURIComponent(query)}`)
+              .then((response) => response.json())
+              .then((results) => {
+                searchResults.innerHTML = '';
+                results.forEach((anime) => {
+                  const div = document.createElement('div');
+                  div.className = 'search-result-item';
+                  div.innerHTML = `
+                    <img src="${anime.image_url}" alt="${anime.name}">
+                    <div class="search-result-info">
+                      <h4>${anime.name}</h4>
+                      <p><i class="fas fa-star"></i> ${anime.rating.toFixed(2)} • ${anime.type}</p>
+                    </div>
+                  `;
+                  div.addEventListener('click', () => getRecommendations(anime.name));
+                  searchResults.appendChild(div);
+                });
+                searchResults.style.display = results.length ? 'block' : 'none';
+              });
+          } else {
+            searchResults.style.display = 'none';
+          }
+        }, 300);
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+          searchResults.style.display = 'none';
+        }
+      });
+
+      function getRecommendations(animeName) {
+        searchResults.style.display = 'none';
+        searchInput.value = animeName;
+
+        const formData = new FormData();
+        formData.append('anime_name', animeName);
+
+        fetch('/recommend', {
+          method: 'POST',
+          body: formData,
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              recommendationSection.style.display = 'block';
+
+              // Tampilkan detail anime yang dipilih
+              const selected = data.selected_anime;
+              selectedAnimeDetails.innerHTML = `
+                <div class="selected-anime-card">
+                  <div class="selected-anime-image">
+                    <img src="${selected.image_url}" alt="${selected.name}">
+                  </div>
+                  <div class="selected-anime-info">
+                    <h3>${selected.name}</h3>
+                    <div class="anime-meta">
+                      <span><i class="fas fa-star"></i> ${selected.rating.toFixed(2)}</span>
+                      <span><i class="fas fa-tv"></i> ${selected.type}</span>
+                      <span><i class="fas fa-film"></i> ${selected.episodes} ep</span>
+                    </div>
+                    <p class="selected-anime-synopsis">${selected.synopsis || 'Tidak ada sinopsis'}</p>
+                    <div class="genre-tags">
+                      ${selected.genres.map((genre) => `<span class="genre-tag">${genre}</span>`).join('')}
+                    </div>
+                  </div>
+                </div>
+              `;
+
+              // Tampilkan rekomendasi
+              recommendationsContainer.innerHTML = '<h3>Anime Serupa</h3>';
+              const recommendationsGrid = document.createElement('div');
+              recommendationsGrid.className = 'recommendations-grid';
+
+              data.recommendations.forEach((anime) => {
+                const card = document.createElement('div');
+                card.className = 'anime-card';
+                card.onclick = () => showAnimeDetails(anime);
+                card.innerHTML = `
+                  <div class="anime-card-image">
+                    <img src="${anime.image_url}" alt="${anime.name}">
+                    <div class="anime-card-rating">
+                      <i class="fas fa-star"></i>
+                      <span>${anime.rating.toFixed(2)}</span>
+                    </div>
+                  </div>
+                  <div class="anime-card-content">
+                    <h3>${anime.name}</h3>
+                    <div class="anime-info">
+                      <p><i class="fas fa-tv"></i> ${anime.type}</p>
+                      <p><i class="fas fa-film"></i> ${anime.episodes || 'N/A'} ep</p>
+                    </div>
+                    <div class="genre-tags">
+                      ${anime.genres
+                        .slice(0, 3)
+                        .map((genre) => `<span class="genre-tag">${genre}</span>`)
+                        .join('')}
+                    </div>
+                  </div>
+                `;
+                recommendationsGrid.appendChild(card);
+              });
+
+              recommendationsContainer.appendChild(recommendationsGrid);
+              recommendationSection.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              alert(data.error || 'Terjadi kesalahan saat mencari rekomendasi');
+            }
+          })
+          .catch((error) => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat mencari rekomendasi');
+          });
+      }
+
+      function updateAnimeData() {
+        if (confirm('Apakah Anda yakin ingin memperbarui data anime?')) {
+          const button = document.querySelector('.btn-update');
+          button.disabled = true;
+          button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Memperbarui...';
+
+          fetch('/update', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              button.disabled = false;
+              button.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Perbarui Data';
+
+              if (data.status === 'success') {
+                alert('Data berhasil diperbarui! Halaman akan dimuat ulang.');
+                location.reload();
+              } else {
+                alert('Gagal memperbarui data: ' + (data.message || 'Terjadi kesalahan'));
+              }
+            })
+            .catch((error) => {
+              button.disabled = false;
+              button.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Perbarui Data';
+              alert('Terjadi kesalahan saat memperbarui data');
+              console.error('Error:', error);
+            });
+        }
+      }
+    </script>
+  </body>
+</html>

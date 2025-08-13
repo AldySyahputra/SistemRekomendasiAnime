@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rekomendasi Anime</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+      .search-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        position: relative;
+      }
+      .search-input-group {
+        position: relative;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        transition: all 0.3s ease;
+      }
+      .search-input-group:focus-within {
+        box-shadow: 0 6px 12px rgba(108, 92, 231, 0.2);
+      }
+      .search-input-group .form-control {
+        padding-left: 45px;
+        border-radius: 8px;
+        border: 2px solid transparent;
+        font-size: 1.1rem;
+        height: 50px;
+      }
+      .search-input-group .form-control:focus {
+        border-color: #6c5ce7;
+        box-shadow: none;
+      }
+      .search-input-group .input-group-text {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 4;
+        background: transparent;
+        border: none;
+        color: #6c5ce7;
+        padding-left: 15px;
+      }
+      .search-input-group .input-group-text i {
+        font-size: 1.2rem;
+      }
+      .search-results {
+        position: absolute;
+        width: 100%;
+        max-height: 400px;
+        overflow-y: auto;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        display: none;
+        margin-top: 5px;
+      }
+      .search-result-item {
+        padding: 12px 15px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: all 0.2s ease;
+      }
+      .search-result-item:hover {
+        background-color: #f8f9fa;
+        transform: translateX(5px);
+      }
+      .search-result-item:last-child {
+        border-bottom: none;
+      }
+      .search-result-item img {
+        width: 50px;
+        height: 70px;
+        object-fit: cover;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .search-result-info {
+        flex: 1;
+      }
+      .search-result-info h4 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #2d3436;
+      }
+      .search-result-info p {
+        margin: 5px 0 0;
+        font-size: 0.9rem;
+        color: #636e72;
+      }
+      .search-result-info p i {
+        color: #6c5ce7;
+        margin-right: 5px;
+      }
+      .recommendation-card {
+        transition: all 0.3s ease;
+        border: none;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .recommendation-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 10px 20px rgba(108, 92, 231, 0.2);
+      }
+      .selected-anime {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        border-radius: 12px;
+        background: #f8f9fa;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      }
+      .selected-anime img {
+        max-height: 300px;
+        object-fit: cover;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .anime-info-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 12px;
+        margin: 0 8px 8px 0;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        background: #6c5ce7;
+        color: white;
+      }
+      .anime-info-badge i {
+        margin-right: 6px;
+      }
+      .section-title {
+        position: relative;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        color: #2d3436;
+      }
+      .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 50px;
+        height: 3px;
+        background: #6c5ce7;
+      }
+      .navbar {
+        background: linear-gradient(135deg, #6c5ce7, #a55eea);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .navbar-brand i,
+      .nav-link i {
+        margin-right: 8px;
+        font-size: 1.2rem;
+      }
+
+      /* Styling untuk Modal Detail Anime */
+      .anime-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 2000;
+        overflow-y: auto;
+        animation: fadeIn 0.3s ease;
+      }
+
+      .anime-modal-content {
+        background: white;
+        max-width: 800px;
+        margin: 30px auto;
+        border-radius: 15px;
+        position: relative;
+        overflow: hidden;
+        animation: slideUp 0.4s ease;
+      }
+
+      .anime-modal-header {
+        position: relative;
+        height: 300px;
+        overflow: hidden;
+      }
+
+      .anime-modal-header img.cover-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: blur(3px);
+        transform: scale(1.1);
+      }
+
+      .anime-modal-header .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.8));
+        display: flex;
+        align-items: flex-end;
+        padding: 20px;
+      }
+
+      .anime-modal-header .anime-poster {
+        width: 180px;
+        height: 250px;
+        object-fit: cover;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        margin-right: 20px;
+      }
+
+      .anime-modal-header .anime-title-info {
+        color: white;
+        flex: 1;
+      }
+
+      .anime-modal-header .anime-title-info h2 {
+        margin: 0;
+        font-size: 2rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+      }
+
+      .anime-modal-body {
+        padding: 20px;
+      }
+
+      .anime-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .anime-stat-item {
+        flex: 1;
+        min-width: 150px;
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+      }
+
+      .anime-stat-item i {
+        font-size: 1.5rem;
+        color: #6c5ce7;
+        margin-bottom: 8px;
+      }
+
+      .anime-stat-item .stat-value {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #2d3436;
+      }
+
+      .anime-stat-item .stat-label {
+        font-size: 0.9rem;
+        color: #636e72;
+      }
+
+      .synopsis-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+      }
+
+      .close-modal {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+      }
+
+      .close-modal:hover {
+        background: rgba(0, 0, 0, 0.8);
+        transform: rotate(90deg);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideUp {
+        from {
+          transform: translateY(50px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      /* Styling untuk tombol detail */
+      .detail-button {
+        background: #6c5ce7;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .detail-button:hover {
+        background: #5849c2;
+        transform: translateY(-2px);
+      }
+
+      /* Styling untuk Bagian Anime Terbaru */
+      .latest-anime-section {
+        margin-bottom: 3rem;
+        padding: 2rem 0;
+        background: linear-gradient(135deg, #6c5ce7, #a55eea);
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(108, 92, 231, 0.2);
+      }
+
+      .latest-anime-title {
+        color: white;
+        text-align: center;
+        margin-bottom: 2rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .latest-anime-container {
+        position: relative;
+      }
+
+      .latest-anime-scroll {
+        display: flex;
+        overflow-x: auto;
+        gap: 1.5rem;
+        padding: 1rem;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .latest-anime-scroll::-webkit-scrollbar {
+        height: 8px;
+      }
+
+      .latest-anime-scroll::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+      }
+
+      .latest-anime-scroll::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+      }
+
+      .latest-anime-card {
+        min-width: 200px;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .latest-anime-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .latest-anime-card img {
+        width: 100%;
+        height: 280px;
+        object-fit: cover;
+      }
+
+      .latest-anime-info {
+        padding: 1rem;
+      }
+
+      .latest-anime-info h5 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+        color: #2d3436;
+      }
+
+      .latest-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        background: #ff7675;
+        color: white;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        margin-bottom: 8px;
+      }
+
+      .latest-badge i {
+        margin-right: 4px;
+      }
+
+      .scroll-button {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        z-index: 1;
+        transition: all 0.3s ease;
+      }
+
+      .scroll-button:hover {
+        background: white;
+        transform: translateY(-50%) scale(1.1);
+      }
+
+      .scroll-left {
+        left: 10px;
+      }
+
+      .scroll-right {
+        right: 10px;
+      }
+
+      .scroll-button i {
+        color: #6c5ce7;
+        font-size: 1.2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+      <div class="container">
+        <a class="navbar-brand" href="/"> <i class="fas fa-tv fa-bounce"></i>Sistem Rekomendasi Anime </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="/"> <i class="fas fa-home fa-beat-fade"></i>Beranda </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active" href="/recommend"> <i class="fas fa-star fa-spin"></i>Rekomendasi </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container mt-4">
+      <!-- Bagian Anime Terbaru -->
+      <div class="latest-anime-section">
+        <h2 class="latest-anime-title"><i class="fas fa-fire fa-beat-fade me-2"></i>Anime Terbaru 2023-2025</h2>
+        <div class="latest-anime-container">
+          <button class="scroll-button scroll-left" onclick="scrollLatestAnime('left')">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div class="latest-anime-scroll" id="latestAnimeScroll">
+            <!-- Anime akan ditambahkan melalui JavaScript -->
+          </div>
+          <button class="scroll-button scroll-right" onclick="scrollLatestAnime('right')">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="text-center mb-4">
+        <h2 class="section-title d-inline-block"><i class="fas fa-search fa-beat me-2"></i>Cari Anime Favoritmu</h2>
+        <p class="text-muted">Temukan rekomendasi anime berdasarkan anime yang kamu suka</p>
+      </div>
+
+      <div class="search-container">
+        <div class="search-input-group">
+          <span class="input-group-text">
+            <i class="fas fa-search fa-beat"></i>
+          </span>
+          <input type="text" id="searchInput" class="form-control" placeholder="Ketik nama anime..." {% if preselected_anime %} value="{{ preselected_anime }}" {% endif %} />
+        </div>
+        <div id="searchResults" class="search-results shadow"></div>
+      </div>
+
+      <div id="selectedAnimeContainer" style="display: none">
+        <div class="selected-anime shadow">
+          <div class="row">
+            <div class="col-md-4">
+              <img id="selectedAnimeImage" src="" alt="" class="img-fluid" />
+            </div>
+            <div class="col-md-8">
+              <h3 id="selectedAnimeName" class="mb-3"></h3>
+              <div id="selectedAnimeInfo" class="mb-3"></div>
+              <p id="selectedAnimeSynopsis" class="text-muted"></p>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="section-title mt-5"><i class="fas fa-thumbs-up fa-beat-fade me-2"></i>Rekomendasi Untukmu</h3>
+        <div id="recommendationsContainer" class="row g-4"></div>
+      </div>
+    </div>
+
+    <!-- Modal Detail Anime -->
+    <div id="animeDetailModal" class="anime-modal">
+      <div class="anime-modal-content">
+        <button class="close-modal" onclick="closeAnimeDetail()">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="anime-modal-header">
+          <img id="modalCoverImage" class="cover-image" src="" alt="" />
+          <div class="overlay">
+            <img id="modalPosterImage" class="anime-poster" src="" alt="" />
+            <div class="anime-title-info">
+              <h2 id="modalAnimeTitle"></h2>
+              <div id="modalAnimeBadges" class="mt-2"></div>
+            </div>
+          </div>
+        </div>
+        <div class="anime-modal-body">
+          <div class="anime-stats">
+            <div class="anime-stat-item">
+              <i class="fas fa-star fa-beat"></i>
+              <div id="modalAnimeRating" class="stat-value"></div>
+              <div class="stat-label">Rating</div>
+            </div>
+            <div class="anime-stat-item">
+              <i class="fas fa-film fa-beat"></i>
+              <div id="modalAnimeEpisodes" class="stat-value"></div>
+              <div class="stat-label">Episode</div>
+            </div>
+            <div class="anime-stat-item">
+              <i class="fas fa-tv fa-beat"></i>
+              <div id="modalAnimeType" class="stat-value"></div>
+              <div class="stat-label">Tipe</div>
+            </div>
+          </div>
+          <div class="synopsis-section">
+            <h4><i class="fas fa-book me-2"></i>Sinopsis</h4>
+            <p id="modalAnimeSynopsis" class="mt-3"></p>
+          </div>
+          <div id="modalAnimeGenres"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      const searchInput = document.getElementById('searchInput');
+      const searchResults = document.getElementById('searchResults');
+      let searchTimeout;
+
+      searchInput.addEventListener('input', function () {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+
+        if (query.length < 2) {
+          searchResults.style.display = 'none';
+          return;
+        }
+
+        searchTimeout = setTimeout(() => {
+          fetch(`/search?q=${encodeURIComponent(query)}`)
+            .then((response) => response.json())
+            .then((data) => {
+              searchResults.innerHTML = '';
+              data.forEach((anime) => {
+                const div = document.createElement('div');
+                div.className = 'search-result-item';
+                div.innerHTML = `
+                  <img src="${anime.image_url}" alt="${anime.name}" loading="lazy">
+                  <div class="search-result-info">
+                    <h4>${anime.name}</h4>
+                    <p>
+                      <i class="fas fa-star fa-beat"></i>${anime.rating.toFixed(2)}
+                      <i class="fas fa-tv ms-2"></i>${anime.type}
+                    </p>
+                  </div>
+                `;
+                div.onclick = () => selectAnime(anime.name);
+                searchResults.appendChild(div);
+              });
+              searchResults.style.display = data.length ? 'block' : 'none';
+            });
+        }, 300);
+      });
+
+      function selectAnime(animeName) {
+        searchResults.style.display = 'none';
+        searchInput.value = animeName;
+
+        fetch('/recommend', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `anime_name=${encodeURIComponent(animeName)}`,
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.error) {
+              alert(data.error);
+              return;
+            }
+
+            const selected = data.selected_anime;
+            document.getElementById('selectedAnimeContainer').style.display = 'block';
+            document.getElementById('selectedAnimeImage').src = selected.image_url;
+            document.getElementById('selectedAnimeName').textContent = selected.name;
+
+            // Tampilkan info anime dengan badge yang menarik
+            const infoHTML = `
+              <div class="anime-info-badge">
+                <i class="fas fa-star fa-beat"></i>${selected.rating.toFixed(2)}
+              </div>
+              <div class="anime-info-badge">
+                <i class="fas fa-tv fa-beat"></i>${selected.type}
+              </div>
+              <div class="anime-info-badge">
+                <i class="fas fa-film fa-beat"></i>${selected.episodes || 'N/A'} Episode
+              </div>
+              ${selected.genres.map(genre => `
+                <div class="anime-info-badge">
+                  <i class="fas fa-tag"></i>${genre}
+                </div>
+              `).join('')}
+            `;
+            document.getElementById('selectedAnimeInfo').innerHTML = infoHTML;
+            document.getElementById('selectedAnimeSynopsis').textContent = selected.synopsis;
+
+            const recommendationsContainer = document.getElementById('recommendationsContainer');
+            recommendationsContainer.innerHTML = data.recommendations
+              .map(
+                (anime) => `
+                  <div class="col-md-4 mb-4">
+                    <div class="card h-100 recommendation-card">
+                      <img src="${anime.image_url}" class="card-img-top" alt="${anime.name}" loading="lazy">
+                      <div class="card-body">
+                        <h5 class="card-title">${anime.name}</h5>
+                        <div class="mb-3">
+                          <div class="anime-info-badge">
+                            <i class="fas fa-percentage fa-beat"></i>${(anime.similarity_score * 100).toFixed(1)}% Mirip
+                          </div>
+                          <div class="anime-info-badge">
+                            <i class="fas fa-star fa-beat"></i>${anime.rating.toFixed(2)}
+                          </div>
+                        </div>
+                        <p class="card-text">
+                          <i class="fas fa-tv me-2"></i>${anime.type}<br>
+                          <i class="fas fa-film me-2"></i>${anime.episodes || 'N/A'} Episode
+                        </p>
+                        <p class="card-text"><small class="text-muted">${anime.synopsis.substring(0, 150)}...</small></p>
+                        <button class="detail-button" onclick='showAnimeDetail(${JSON.stringify(anime).replace(/'/g, "\\'")})'">
+                          <i class="fas fa-info-circle fa-beat"></i>Lihat Detail
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                `
+              )
+              .join('');
+
+            // Tambahkan tombol detail untuk anime yang dipilih
+            const detailButton = document.createElement('button');
+            detailButton.className = 'detail-button mt-3';
+            detailButton.innerHTML = '<i class="fas fa-info-circle fa-beat"></i>Lihat Detail Lengkap';
+            detailButton.onclick = () => showAnimeDetail(selected);
+            document.getElementById('selectedAnimeInfo').appendChild(detailButton);
+          });
+      }
+
+      // Tutup hasil pencarian saat mengklik di luar
+      document.addEventListener('click', function (e) {
+        if (!searchResults.contains(e.target) && e.target !== searchInput) {
+          searchResults.style.display = 'none';
+        }
+      });
+
+      // Jika ada anime yang dipilih sebelumnya, langsung tampilkan rekomendasinya
+      {% if preselected_anime %}
+        selectAnime("{{ preselected_anime }}");
+      {% endif %}
+
+      function showAnimeDetail(anime) {
+        const modal = document.getElementById('animeDetailModal');
+        document.getElementById('modalCoverImage').src = anime.image_url;
+        document.getElementById('modalPosterImage').src = anime.image_url;
+        document.getElementById('modalAnimeTitle').textContent = anime.name;
+        document.getElementById('modalAnimeRating').textContent = anime.rating.toFixed(2);
+        document.getElementById('modalAnimeEpisodes').textContent = anime.episodes || 'N/A';
+        document.getElementById('modalAnimeType').textContent = anime.type;
+        document.getElementById('modalAnimeSynopsis').textContent = anime.synopsis;
+
+        // Membuat badges untuk genre
+        const genreHTML = anime.genres.map(genre => `
+          <div class="anime-info-badge">
+            <i class="fas fa-tag"></i>${genre}
+          </div>
+        `).join('');
+        document.getElementById('modalAnimeGenres').innerHTML = genreHTML;
+
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeAnimeDetail() {
+        const modal = document.getElementById('animeDetailModal');
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+      }
+
+      // Tutup modal saat mengklik di luar
+      window.onclick = function(event) {
+        const modal = document.getElementById('animeDetailModal');
+        if (event.target == modal) {
+          closeAnimeDetail();
+        }
+      }
+
+      // Fungsi untuk menampilkan anime terbaru
+      function displayLatestAnimes() {
+        fetch('/latest-anime')
+          .then(response => response.json())
+          .then(animes => {
+            const container = document.getElementById('latestAnimeScroll');
+            container.innerHTML = animes.map(anime => `
+              <div class="latest-anime-card" onclick='showAnimeDetail(${JSON.stringify(anime).replace(/'/g, "\\'")})'">
+                <img src="${anime.image_url}" alt="${anime.name}" loading="lazy">
+                <div class="latest-anime-info">
+                  <div class="latest-badge">
+                    <i class="fas fa-calendar-alt fa-beat"></i>${anime.year}
+                  </div>
+                  <div class="latest-badge ms-1">
+                    <i class="fas fa-circle fa-beat" style="font-size: 0.6rem"></i>${anime.status}
+                  </div>
+                  <h5>${anime.name}</h5>
+                  <div class="d-flex align-items-center gap-2">
+                    <small><i class="fas fa-star fa-beat" style="color: #ffd700"></i>${anime.rating}</small>
+                    <small><i class="fas fa-tv ms-2"></i>${anime.type}</small>
+                  </div>
+                </div>
+              </div>
+            `).join('');
+          })
+          .catch(error => {
+            console.error('Error fetching latest anime:', error);
+          });
+      }
+
+      // Fungsi untuk scroll anime terbaru
+      function scrollLatestAnime(direction) {
+        const container = document.getElementById('latestAnimeScroll');
+        const scrollAmount = 400;
+        if (direction === 'left') {
+          container.scrollLeft -= scrollAmount;
+        } else {
+          container.scrollLeft += scrollAmount;
+        }
+      }
+
+      // Panggil fungsi saat halaman dimuat
+      displayLatestAnimes();
+    </script>
+  </body>
+</html>
